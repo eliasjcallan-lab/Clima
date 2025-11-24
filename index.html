@@ -29,17 +29,24 @@
       background: #020617; /* mismo fondo general del Pomodoro */
     }
 
-    .weather-widget {
-      background: var(--bg-main);
-      color: var(--text-main);
-      padding: 31px 24px 39px 24px;  /* un poco más alto abajo para que no se corte el borde azul */
-      border-radius: var(--radius-lg);
-      display: inline-flex;          /* el contenedor se ajusta al contenido */
-      align-items: center;
-      gap: 10px;
-      width: auto;
-      max-width: none;
-    }
+.weather-widget {
+  background: radial-gradient(
+      circle at 50% 40%,
+      rgba(37, 99, 235, 0.45) 0%,
+      rgba(15, 23, 42, 0.9) 55%,
+      rgba(2, 6, 23, 1) 100%
+    );
+  background-repeat: no-repeat;
+  background-size: 140% 140%;  /* El gradiente se concentra dentro del cuadro */
+  color: var(--text-main);
+  padding: 31px 24px 39px 24px;
+  border-radius: var(--radius-lg);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  width: auto;
+  max-width: none;
+}
 
     .location-block {
       display: flex;
