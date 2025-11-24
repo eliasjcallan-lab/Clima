@@ -215,23 +215,21 @@ const updatedAtEl = document.getElementById("updated-at");
 
 function initWeather(){
   if(!navigator.geolocation){
-    // Si el navegador no soporta GPS, intentamos por IP
-    fetchLocationByIP();
+    // Sin GPS → fallback Lima
+    loadFallback();
     return;
   }
 
   navigator.geolocation.getCurrentPosition(
     (pos)=>fetchWeather(pos.coords.latitude,pos.coords.longitude),
     (err)=>{
-      console.warn("Error geolocalización, uso IP:", err);
-      // Si falla GPS (caso típico en Notion), usamos IP
-      fetchLocationByIP();
+      console.warn("GPS bloqueado, usando fallback:", err);
+      loadFallback();   // ← antes usabas esto, lo dejamos igual
     },
     {enableHighAccuracy:true,timeout:8000}
   );
 }
 
-async function fetchLocationByIP(){
   try{
     const resp = await fetch("https://ipapi.co/json/");
     const data = await resp.json();
@@ -361,3 +359,4 @@ initWeather();
 
 </body>
 </html>
+
