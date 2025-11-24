@@ -1,200 +1,474 @@
-<script>
-  // =============== CONFIGURACIÓN ===============
-  // He puesto directamente tu API key aquí:
-  const API_KEY = "ada1e08f2bb58ca3ddf5178acd4ccf04";
-  const UNITS = "metric";
-  const LANG = "es";
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Widget Clima</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  // Días en español empezando en lunes
-  const DAYS_ORDERED = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
-
-  const cityNameEl = document.getElementById("city-name");
-  const badgeTextEl = document.getElementById("badge-text");
-  const errorTextEl = document.getElementById("error-text");
-  const currentIconEl = document.getElementById("current-icon");
-  const currentTempEl = document.getElementById("current-temp");
-  const currentDescEl = document.getElementById("current-desc");
-  const forecastStripEl = document.getElementById("forecast-strip");
-  const updatedAtEl = document.getElementById("updated-at");
-
-  // =============== GEOLOCALIZACIÓN ===============
-  function initWeather() {
-    if (!navigator.geolocation) {
-      showError("Tu navegador no permite obtener la ubicación. Usando Lima por defecto.");
-      badgeTextEl.textContent = "Sin GPS";
-      // Lima centro aprox.
-      fetchWeather(-12.0464, -77.0428, "LIMA (por defecto)");
-      return;
+  <style>
+    :root {
+      --bg-main: #050816;
+      --bg-card: #0b1120;
+      --accent:  #2563eb;
+      --accent-soft: #1d4ed8;
+      --text-main: #f9fafb;
+      --text-secondary: #9ca3af;
+      --danger: #f97316;
+      --radius-lg: 18px;
     }
 
-    badgeTextEl.textContent = "Solicitando GPS…";
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        sans-serif;
+    }
 
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const { latitude, longitude } = pos.coords;
-        fetchWeather(latitude, longitude);
-      },
-      (err) => {
-        console.error("Error geolocalización:", err);
-        showError("No se pudo obtener la ubicación. Usando Lima por defecto. Revisa los permisos de GPS.");
+    body {
+      background: transparent;
+    }
+
+    .weather-widget {
+      background: var(--bg-main);
+      color: var(--text-main);
+      padding: 16px 20px;
+      border-radius: var(--radius-lg);
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      width: 100%;
+      max-width: 900px;
+      overflow: hidden;
+    }
+
+    .location-block {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 160px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+
+    .location-block .city {
+      font-size: 13px;
+      color: var(--text-main);
+      font-weight: 600;
+      text-transform: none; /* para respetar mayúsculas/minúsculas de OSM */
+      letter-spacing: 0.03em;
+    }
+
+    .current-weather {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 120px;
+    }
+
+    .current-icon img {
+      width: 38px;
+      height: 38px;
+      filter: drop-shadow(0 0 6px rgba(37, 99, 235, 0.5));
+    }
+
+    .current-data {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .current-temp {
+      font-size: 24px;
+      font-weight: 600;
+    }
+
+    .current-desc {
+      font-size: 11px;
+      color: var(--text-secondary);
+      text-transform: lowercase;
+    }
+
+    .forecast-strip {
+      display: flex;
+      gap: 10px;
+      flex: 1;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+    }
+
+    .day-card {
+      background: var(--bg-card);
+      border-radius: var(--radius-lg);
+      padding: 8px 8px;
+      min-width: 70px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
+      position: relative;
+    }
+
+    /* Día actual resaltado */
+    .day-card.today {
+      outline: 2px solid var(--accent);
+      box-shadow: 0 0 14px rgba(37, 99, 235, 0.7);
+    }
+
+    .day-name {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .day-name span.hoy {
+      display: block;
+      font-size: 9px;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-top: 1px;
+    }
+
+    .day-icon img {
+      width: 26px;
+      height: 26px;
+    }
+
+    .day-temps {
+      font-size: 11px;
+      color: var(--text-secondary);
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .temp-max {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .temp-min {
+      opacity: 0.85;
+    }
+
+    .status-bar {
+      position: absolute;
+      inset: auto 20px 10px 20px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      color: var(--text-secondary);
+      pointer-events: none;
+    }
+
+    .status-bar span {
+      pointer-events: auto;
+    }
+
+    .weather-wrapper {
+      position: relative;
+      width: 100%;
+    }
+
+    .badge {
+      background: rgba(37, 99, 235, 0.16);
+      color: var(--accent);
+      border-radius: 999px;
+      padding: 2px 10px;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 600;
+    }
+
+    .message {
+      font-size: 11px;
+      color: var(--danger);
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="weather-wrapper">
+    <div class="weather-widget" id="weather-widget">
+      <div class="location-block">
+        <span class="city" id="city-name">Detectando ubicación…</span>
+        <span>CLIMA</span>
+        <span class="badge" id="badge-text">Cargando datos</span>
+        <span class="message" id="error-text"></span>
+      </div>
+
+      <div class="current-weather">
+        <div class="current-icon" id="current-icon"></div>
+        <div class="current-data">
+          <div class="current-temp" id="current-temp">-- ºC</div>
+          <div class="current-desc" id="current-desc">--</div>
+        </div>
+      </div>
+
+      <div class="forecast-strip" id="forecast-strip">
+        <!-- Días por JS -->
+      </div>
+    </div>
+
+    <div class="status-bar">
+      <span id="updated-at">Actualizado: --</span>
+      <span>Fuente: OpenWeather • Ubicación por GPS + OpenStreetMap</span>
+    </div>
+  </div>
+
+  <script>
+    // =============== CONFIGURACIÓN ===============
+    const API_KEY = "ada1e08f2bb58ca3ddf5178acd4ccf04";
+    const UNITS = "metric";
+    const LANG = "es";
+
+    // Orden visual de días
+    const DAYS_ORDERED = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+
+    const cityNameEl = document.getElementById("city-name");
+    const badgeTextEl = document.getElementById("badge-text");
+    const errorTextEl = document.getElementById("error-text");
+    const currentIconEl = document.getElementById("current-icon");
+    const currentTempEl = document.getElementById("current-temp");
+    const currentDescEl = document.getElementById("current-desc");
+    const forecastStripEl = document.getElementById("forecast-strip");
+    const updatedAtEl = document.getElementById("updated-at");
+
+    // =============== GEOLOCALIZACIÓN ===============
+    function initWeather() {
+      if (!navigator.geolocation) {
+        showError("Tu navegador no permite obtener la ubicación. Usando Lima por defecto.");
         badgeTextEl.textContent = "Sin GPS";
-        // Fallback a Lima
-        fetchWeather(-12.0464, -77.0428, "LIMA (por defecto)");
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 5 * 60 * 1000
-      }
-    );
-  }
-
-  // =============== PETICIÓN A OPENWEATHER (weather + forecast) ===============
-  async function fetchWeather(lat, lon, forcedCityName = null) {
-    try {
-      badgeTextEl.textContent = "Cargando datos…";
-      errorTextEl.textContent = "";
-
-      const urlCurrent = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=${UNITS}&lang=${LANG}&appid=${API_KEY}`;
-      const urlForecast = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&units=${UNITS}&lang=${LANG}&appid=${API_KEY}`;
-
-      const [currentRes, forecastRes] = await Promise.all([
-        fetch(urlCurrent),
-        fetch(urlForecast)
-      ]);
-
-      if (!currentRes.ok) {
-        const txt = await currentRes.text();
-        console.error("Error API weather:", currentRes.status, txt);
-        throw new Error("Error al obtener el clima actual. Código: " + currentRes.status);
-      }
-      if (!forecastRes.ok) {
-        const txt = await forecastRes.text();
-        console.error("Error API forecast:", forecastRes.status, txt);
-        throw new Error("Error al obtener el pronóstico. Código: " + forecastRes.status);
+        fetchWeather(-12.0464, -77.0428);
+        return;
       }
 
-      const currentData = await currentRes.json();
-      const forecastData = await forecastRes.json();
+      badgeTextEl.textContent = "Solicitando GPS…";
 
-      const city =
-        forcedCityName ||
-        currentData.name ||
-        "Tu ubicación";
-
-      renderWeather(city.toUpperCase(), currentData, forecastData);
-      badgeTextEl.textContent = "Ubicación activada";
-    } catch (e) {
-      console.error(e);
-      showError("No se pudo cargar el clima. Verifica tu conexión o que la API key siga activa.");
-      badgeTextEl.textContent = "Error";
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const { latitude, longitude } = pos.coords;
+          fetchWeather(latitude, longitude);
+        },
+        (err) => {
+          console.error("Error geolocalización:", err);
+          showError("No se pudo obtener la ubicación. Usando Lima por defecto. Revisa los permisos de GPS.");
+          badgeTextEl.textContent = "Sin GPS";
+          fetchWeather(-12.0464, -77.0428);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 5 * 60 * 1000
+        }
+      );
     }
-  }
 
-  // =============== RENDER ===============
-  function renderWeather(city, currentData, forecastData) {
-    cityNameEl.textContent = city;
+    // =============== PETICIONES: OpenWeather + OpenStreetMap ===============
+    async function fetchWeather(lat, lon) {
+      try {
+        badgeTextEl.textContent = "Cargando datos…";
+        errorTextEl.textContent = "";
 
-    // ---- Actual ----
-    const temp = currentData.main.temp;
-    const desc = currentData.weather[0].description;
-    const iconCode = currentData.weather[0].icon;
+        const urlCurrent = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=${UNITS}&lang=${LANG}&appid=${API_KEY}`;
+        const urlForecast = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&units=${UNITS}&lang=${LANG}&appid=${API_KEY}`;
+        const urlOSM = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=jsonv2&addressdetails=1&accept-language=es`;
 
-    currentTempEl.textContent = `${Math.round(temp)} ºC`;
-    currentDescEl.textContent = desc;
-    currentIconEl.innerHTML = `<img src="https://openweathermap.org/img/wn/${iconCode}@2x.png" alt="${desc}">`;
+        const [currentRes, forecastRes, osmRes] = await Promise.all([
+          fetch(urlCurrent),
+          fetch(urlForecast),
+          fetch(urlOSM, { headers: { "Accept-Language": "es" } })
+        ]);
 
-    // ---- Pronóstico diario (a partir de /forecast cada 3 horas) ----
-    const list = forecastData.list || [];
-    const daysMap = new Map(); // clave: 'YYYY-MM-DD' -> {min, max, icon, dt}
+        if (!currentRes.ok) {
+          const txt = await currentRes.text();
+          console.error("Error API weather:", currentRes.status, txt);
+          throw new Error("Error al obtener el clima actual. Código: " + currentRes.status);
+        }
+        if (!forecastRes.ok) {
+          const txt = await forecastRes.text();
+          console.error("Error API forecast:", forecastRes.status, txt);
+          throw new Error("Error al obtener el pronóstico. Código: " + forecastRes.status);
+        }
 
-    list.forEach((item) => {
-      const d = new Date(item.dt * 1000);
-      const dateKey = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+        const currentData = await currentRes.json();
+        const forecastData = await forecastRes.json();
 
-      const tempMin = item.main.temp_min;
-      const tempMax = item.main.temp_max;
-      const icon = item.weather[0].icon;
+        let cityLabel = null;
+        if (osmRes.ok) {
+          const osmData = await osmRes.json();
+          cityLabel = buildOsmLabel(osmData, currentData);
+        } else {
+          console.warn("OSM no respondió correctamente, usando nombre de OpenWeather.");
+        }
 
-      if (!daysMap.has(dateKey)) {
-        daysMap.set(dateKey, {
-          min: tempMin,
-          max: tempMax,
-          icon: icon,
-          dt: d
-        });
-      } else {
-        const dayData = daysMap.get(dateKey);
-        dayData.min = Math.min(dayData.min, tempMin);
-        dayData.max = Math.max(dayData.max, tempMax);
-        // dejamos el icono del primer registro (suficiente para un widget)
+        // Fallback a nombre de OpenWeather si OSM no devuelve algo útil
+        if (!cityLabel || cityLabel.trim() === ",") {
+          cityLabel = currentData.name || "Tu ubicación";
+        }
+
+        renderWeather(cityLabel, currentData, forecastData);
+        badgeTextEl.textContent = "Ubicación activada";
+      } catch (e) {
+        console.error(e);
+        showError("No se pudo cargar el clima. Verifica tu conexión o que la API key siga activa.");
+        badgeTextEl.textContent = "Error";
       }
-    });
+    }
 
-    // Convertimos a array y ordenamos por fecha
-    const daysArray = Array.from(daysMap.values()).sort((a, b) => a.dt - b.dt);
-    // Tomamos máximo 7 días
-    const daysLimited = daysArray.slice(0, 7);
+    // Construye "Departamento, Distrito" desde la respuesta de OSM
+    function buildOsmLabel(osmData, currentData) {
+      if (!osmData || !osmData.address) return null;
+      const addr = osmData.address;
 
-    // Mapeamos a nombre de día
-    const cards = daysLimited.map((dData) => {
-      const dayName = mapDayToSpanish(dData.dt.getDay());
-      return {
-        name: dayName,
-        min: Math.round(dData.min),
-        max: Math.round(dData.max),
-        icon: dData.icon,
-        dt: dData.dt
+      // En Perú normalmente:
+      // state = "Lima"
+      // city_district / suburb / town / city = "San Juan de Lurigancho", "Miraflores", etc.
+      const departamento =
+        addr.state ||
+        addr.region ||
+        addr.state_district ||
+        addr.county ||
+        null;
+
+      const distrito =
+        addr.city_district ||
+        addr.suburb ||
+        addr.town ||
+        addr.city ||
+        addr.village ||
+        addr.municipality ||
+        null;
+
+      if (departamento && distrito) {
+        return `${departamento}, ${distrito}`;
+      }
+
+      // Si solo tenemos uno de los dos, devolvemos lo que haya
+      if (departamento) return departamento;
+      if (distrito) return distrito;
+
+      // Si nada, usamos el nombre de OpenWeather
+      return currentData?.name || null;
+    }
+
+    // =============== RENDER ===============
+    function renderWeather(city, currentData, forecastData) {
+      cityNameEl.textContent = city;
+
+      // Actual
+      const temp = currentData.main.temp;
+      const desc = currentData.weather[0].description;
+      const iconCode = currentData.weather[0].icon;
+
+      currentTempEl.textContent = `${Math.round(temp)} ºC`;
+      currentDescEl.textContent = desc;
+      currentIconEl.innerHTML = `<img src="https://openweathermap.org/img/wn/${iconCode}@2x.png" alt="${desc}">`;
+
+      // Pronóstico diario (a partir de /forecast cada 3 horas)
+      const list = forecastData.list || [];
+      const daysMap = new Map();
+
+      list.forEach((item) => {
+        const d = new Date(item.dt * 1000);
+        const dateKey =
+          d.getFullYear() +
+          "-" +
+          String(d.getMonth() + 1).padStart(2, "0") +
+          "-" +
+          String(d.getDate()).padStart(2, "0");
+
+        const tempMin = item.main.temp_min;
+        const tempMax = item.main.temp_max;
+        const icon = item.weather[0].icon;
+
+        if (!daysMap.has(dateKey)) {
+          daysMap.set(dateKey, {
+            min: tempMin,
+            max: tempMax,
+            icon: icon,
+            dt: d
+          });
+        } else {
+          const dayData = daysMap.get(dateKey);
+          dayData.min = Math.min(dayData.min, tempMin);
+          dayData.max = Math.max(dayData.max, tempMax);
+        }
+      });
+
+      const daysArray = Array.from(daysMap.values()).sort((a, b) => a.dt - b.dt);
+      const daysLimited = daysArray.slice(0, 7);
+
+      const todayName = mapDayToSpanish(new Date().getDay());
+
+      const cards = daysLimited.map((dData) => {
+        const dayName = mapDayToSpanish(dData.dt.getDay());
+        return {
+          name: dayName,
+          min: Math.round(dData.min),
+          max: Math.round(dData.max),
+          icon: dData.icon,
+          dt: dData.dt,
+          isToday: dayName === todayName
+        };
+      });
+
+      // Orden visual lunes–domingo
+      cards.sort((a, b) => {
+        return DAYS_ORDERED.indexOf(a.name) - DAYS_ORDERED.indexOf(b.name);
+      });
+
+      forecastStripEl.innerHTML = "";
+      cards.forEach((c) => {
+        const card = document.createElement("div");
+        card.className = "day-card";
+        if (c.isToday) card.classList.add("today");
+        card.innerHTML = `
+          <div class="day-name">
+            ${c.name}
+            ${c.isToday ? '<span class="hoy">HOY</span>' : ""}
+          </div>
+          <div class="day-icon">
+            <img src="https://openweathermap.org/img/wn/${c.icon}.png" alt="">
+          </div>
+          <div class="day-temps">
+            <span class="temp-max">${c.max} ºC</span>
+            <span class="temp-min">${c.min} ºC</span>
+          </div>
+        `;
+        forecastStripEl.appendChild(card);
+      });
+
+      const now = new Date();
+      updatedAtEl.textContent = `Actualizado: ${now.toLocaleTimeString("es-PE", {
+        hour: "2-digit",
+        minute: "2-digit"
+      })}`;
+    }
+
+    function mapDayToSpanish(jsDay) {
+      const map = {
+        0: "Domingo",
+        1: "Lunes",
+        2: "Martes",
+        3: "Miércoles",
+        4: "Jueves",
+        5: "Viernes",
+        6: "Sábado"
       };
-    });
+      return map[jsDay];
+    }
 
-    // Ordenar visualmente de lunes a domingo
-    cards.sort((a, b) => {
-      return DAYS_ORDERED.indexOf(a.name) - DAYS_ORDERED.indexOf(b.name);
-    });
+    function showError(msg) {
+      errorTextEl.textContent = msg;
+    }
 
-    // Pintar
-    forecastStripEl.innerHTML = "";
-    cards.forEach((c) => {
-      const card = document.createElement("div");
-      card.className = "day-card";
-      card.innerHTML = `
-        <div class="day-name">${c.name}</div>
-        <div class="day-icon">
-          <img src="https://openweathermap.org/img/wn/${c.icon}.png" alt="">
-        </div>
-        <div class="day-temps">
-          <span class="temp-max">${c.max} ºC</span>
-          <span class="temp-min">${c.min} ºC</span>
-        </div>
-      `;
-      forecastStripEl.appendChild(card);
-    });
-
-    const now = new Date();
-    updatedAtEl.textContent = `Actualizado: ${now.toLocaleTimeString("es-PE", {
-      hour: "2-digit",
-      minute: "2-digit"
-    })}`;
-  }
-
-  function mapDayToSpanish(jsDay) {
-    const map = {
-      0: "Domingo",
-      1: "Lunes",
-      2: "Martes",
-      3: "Miércoles",
-      4: "Jueves",
-      5: "Viernes",
-      6: "Sábado"
-    };
-    return map[jsDay];
-  }
-
-  function showError(msg) {
-    errorTextEl.textContent = msg;
-  }
-
-  // Iniciar
-  initWeather();
-</script>
+    initWeather();
+  </script>
+</body>
+</html>
