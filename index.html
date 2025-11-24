@@ -10,7 +10,6 @@
       --bg-main: #050816;
       --bg-card: #0b1120;
       --accent:  #2563eb;
-      --accent-soft: #1d4ed8;
       --text-main: #f9fafb;
       --text-secondary: #9ca3af;
       --danger: #f97316;
@@ -21,8 +20,7 @@
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-        sans-serif;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
 
     body {
@@ -39,32 +37,35 @@
       gap: 24px;
       width: 100%;
       max-width: 900px;
-      overflow: hidden;
     }
 
     .location-block {
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 6px;
       min-width: 160px;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
       font-size: 11px;
       color: var(--text-secondary);
     }
 
-    .location-block .city {
-      font-size: 13px;
-      color: var(--text-main);
+    .city {
+      font-size: 14px;
       font-weight: 600;
-      text-transform: none;       /* Mantener mayúsculas/minúsculas reales */
+      color: var(--text-main);
       letter-spacing: 0.03em;
+      text-transform: none;
     }
 
-    #department-text {
-      text-transform: none;       /* También en formato normal */
-      letter-spacing: 0.06em;
-      font-weight: 500;
+    .badge {
+      background: rgba(37, 99, 235, 0.2);
+      color: var(--accent);
+      border-radius: 999px;
+      padding: 2px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: none;
+      letter-spacing: 0.05em;
+      width: fit-content;
     }
 
     .current-weather {
@@ -77,23 +78,16 @@
     .current-icon img {
       width: 38px;
       height: 38px;
-      filter: drop-shadow(0 0 6px rgba(37, 99, 235, 0.5));
-    }
-
-    .current-data {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
     }
 
     .current-temp {
-      font-size: 24px;
-      font-weight: 600;
+      font-size: 26px;
+      font-weight: bold;
     }
 
     .current-desc {
-      font-size: 11px;
       color: var(--text-secondary);
+      font-size: 11px;
       text-transform: lowercase;
     }
 
@@ -108,34 +102,29 @@
     .day-card {
       background: var(--bg-card);
       border-radius: var(--radius-lg);
-      padding: 8px 8px;
+      padding: 8px;
       min-width: 70px;
       text-align: center;
       display: flex;
       flex-direction: column;
       gap: 4px;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
-      position: relative;
     }
 
     .day-card.today {
       outline: 2px solid var(--accent);
-      box-shadow: 0 0 14px rgba(37, 99, 235, 0.7);
     }
 
     .day-name {
       font-size: 11px;
-      font-weight: 600;
       color: var(--text-secondary);
+      font-weight: 600;
     }
 
-    .day-name span.hoy {
-      display: block;
+    .hoy {
       font-size: 9px;
       color: var(--accent);
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
       margin-top: 1px;
+      text-transform: uppercase;
     }
 
     .day-icon img {
@@ -146,63 +135,35 @@
     .day-temps {
       font-size: 11px;
       color: var(--text-secondary);
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
     }
 
     .temp-max {
       color: var(--accent);
-      font-weight: 600;
-    }
-
-    .temp-min {
-      opacity: 0.85;
+      font-weight: bold;
     }
 
     .status-bar {
-      position: absolute;
-      inset: auto 20px 10px 20px;
-      display: flex;
-      justify-content: flex-start;
       font-size: 10px;
       color: var(--text-secondary);
-      pointer-events: none;
-    }
-
-    .weather-wrapper {
-      position: relative;
-      width: 100%;
-    }
-
-    .badge {
-      background: rgba(37, 99, 235, 0.16);
-      color: var(--accent);
-      border-radius: 999px;
-      padding: 2px 10px;
-      font-size: 10px;
-      text-transform: none;
-      letter-spacing: 0.06em;
-      font-weight: 600;
+      margin-top: 4px;
     }
 
     .message {
-      font-size: 11px;
       color: var(--danger);
-      margin-top: 4px;
+      font-size: 11px;
     }
   </style>
 </head>
 <body>
   <div class="weather-wrapper">
-    <div class="weather-widget" id="weather-widget">
+    <div class="weather-widget">
+
       <div class="location-block">
-        <!-- Departamento, Distrito -->
         <span class="city" id="city-name">Detectando ubicación…</span>
-        <!-- Departamento solo (reemplaza a CLIMA) -->
-        <span id="department-text">Departamento</span>
-        <!-- Pastilla azul con Departamento -->
+
+        <!-- SOLO LA PASTILLA AZUL -->
         <span class="badge" id="badge-text">Departamento</span>
+
         <span class="message" id="error-text"></span>
       </div>
 
@@ -214,291 +175,134 @@
         </div>
       </div>
 
-      <div class="forecast-strip" id="forecast-strip">
-        <!-- Días por JS -->
-      </div>
+      <div class="forecast-strip" id="forecast-strip"></div>
     </div>
 
-    <div class="status-bar">
-      <span id="updated-at">Actualizado: --</span>
-      <!-- Quitado texto de fuente -->
-    </div>
+    <div class="status-bar" id="updated-at">Actualizado: --</div>
   </div>
 
-  <script>
-    // =============== CONFIGURACIÓN ===============
-    const API_KEY = "ada1e08f2bb58ca3ddf5178acd4ccf04";
-    const UNITS = "metric";
-    const LANG = "es";
+<script>
+const API_KEY = "ada1e08f2bb58ca3ddf5178acd4ccf04";
+const UNITS = "metric";
+const LANG = "es";
 
-    const DAYS_ORDERED = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+const DAYS = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
+const ORDER = ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];
 
-    const cityNameEl = document.getElementById("city-name");
-    const departmentTextEl = document.getElementById("department-text");
-    const badgeTextEl = document.getElementById("badge-text");
-    const errorTextEl = document.getElementById("error-text");
-    const currentIconEl = document.getElementById("current-icon");
-    const currentTempEl = document.getElementById("current-temp");
-    const currentDescEl = document.getElementById("current-desc");
-    const forecastStripEl = document.getElementById("forecast-strip");
-    const updatedAtEl = document.getElementById("updated-at");
+const cityNameEl = document.getElementById("city-name");
+const badgeTextEl = document.getElementById("badge-text");
+const errorTextEl = document.getElementById("error-text");
+const currentIconEl = document.getElementById("current-icon");
+const currentTempEl = document.getElementById("current-temp");
+const currentDescEl = document.getElementById("current-desc");
+const forecastStripEl = document.getElementById("forecast-strip");
+const updatedAtEl = document.getElementById("updated-at");
 
-    // =============== GEOLOCALIZACIÓN ===============
-    function initWeather() {
-      if (!navigator.geolocation) {
-        showError("Tu navegador no permite obtener la ubicación. Usando Lima por defecto.");
-        badgeTextEl.textContent = "Lima";
-        departmentTextEl.textContent = "Lima";
-        fetchWeather(-12.0464, -77.0428);
-        return;
-      }
+function initWeather(){
+  if(!navigator.geolocation){
+    loadFallback();
+    return;
+  }
 
-      badgeTextEl.textContent = "Cargando…";
+  navigator.geolocation.getCurrentPosition(
+    (pos)=>fetchWeather(pos.coords.latitude,pos.coords.longitude),
+    ()=>loadFallback(),
+    {enableHighAccuracy:true,timeout:10000}
+  );
+}
 
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          const { latitude, longitude } = pos.coords;
-          fetchWeather(latitude, longitude);
-        },
-        (err) => {
-          console.error("Error geolocalización:", err);
-          showError("No se pudo obtener la ubicación. Usando Lima por defecto. Revisa los permisos de GPS.");
-          badgeTextEl.textContent = "Lima";
-          departmentTextEl.textContent = "Lima";
-          fetchWeather(-12.0464, -77.0428);
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 5 * 60 * 1000
-        }
-      );
+function loadFallback(){
+  fetchWeather(-12.0464,-77.0428);
+}
+
+async function fetchWeather(lat,lon){
+  try{
+    const urlW = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=${UNITS}&lang=${LANG}&appid=${API_KEY}`;
+    const urlF = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&units=${UNITS}&lang=${LANG}&appid=${API_KEY}`;
+    const urlOSM = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=es&addressdetails=1`;
+
+    const [wRes,fRes,osmRes] = await Promise.all([
+      fetch(urlW),fetch(urlF),fetch(urlOSM)
+    ]);
+
+    const weather = await wRes.json();
+    const forecast = await fRes.json();
+    const osm = await osmRes.json();
+
+    const loc = parseLocation(osm,weather);
+
+    renderWeather(loc,weather,forecast);
+  }catch(e){
+    errorTextEl.textContent="Error cargando clima";
+  }
+}
+
+function parseLocation(osm,weather){
+  const a = osm.address;
+
+  const dep =
+    a.state || a.region || a.county || "Lima";
+
+  const dist =
+    a.city_district || a.suburb || a.town || a.city || weather.name;
+
+  return {
+    full:`${dep}, ${dist}`,
+    dep
+  };
+}
+
+function renderWeather(loc,w,f){
+  cityNameEl.textContent = loc.full;
+  badgeTextEl.textContent = loc.dep;
+
+  currentTempEl.textContent = `${Math.round(w.main.temp)} ºC`;
+  currentDescEl.textContent = w.weather[0].description;
+
+  currentIconEl.innerHTML = `<img src="https://openweathermap.org/img/wn/${w.weather[0].icon}@2x.png">`;
+
+  // Forecast
+  const days = {};
+  f.list.forEach(i=>{
+    const d=new Date(i.dt*1000);
+    const key=d.toDateString();
+    if(!days[key]){
+      days[key]={min:i.main.temp_min,max:i.main.temp_max,icon:i.weather[0].icon,day:DAYS[d.getDay()],date:d};
+    }else{
+      days[key].min=Math.min(days[key].min,i.main.temp_min);
+      days[key].max=Math.max(days[key].max,i.main.temp_max);
     }
+  });
 
-    // =============== PETICIONES: OpenWeather + OpenStreetMap ===============
-    async function fetchWeather(lat, lon) {
-      try {
-        errorTextEl.textContent = "";
+  const list = Object.values(days).slice(0,7);
 
-        const urlCurrent = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=${UNITS}&lang=${LANG}&appid=${API_KEY}`;
-        const urlForecast = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&units=${UNITS}&lang=${LANG}&appid=${API_KEY}`;
-        const urlOSM = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=jsonv2&addressdetails=1&accept-language=es`;
+  list.sort((a,b)=>ORDER.indexOf(a.day)-ORDER.indexOf(b.day));
 
-        const [currentRes, forecastRes, osmRes] = await Promise.all([
-          fetch(urlCurrent),
-          fetch(urlForecast),
-          fetch(urlOSM, { headers: { "Accept-Language": "es" } })
-        ]);
+  const today = DAYS[new Date().getDay()];
 
-        if (!currentRes.ok) {
-          const txt = await currentRes.text();
-          console.error("Error API weather:", currentRes.status, txt);
-          throw new Error("Error al obtener el clima actual. Código: " + currentRes.status);
-        }
-        if (!forecastRes.ok) {
-          const txt = await forecastRes.text();
-          console.error("Error API forecast:", forecastRes.status, txt);
-          throw new Error("Error al obtener el pronóstico. Código: " + forecastRes.status);
-        }
+  forecastStripEl.innerHTML="";
+  list.forEach(d=>{
+    const div=document.createElement("div");
+    div.className="day-card";
+    if(d.day===today) div.classList.add("today");
 
-        const currentData = await currentRes.json();
-        const forecastData = await forecastRes.json();
+    div.innerHTML=`
+      <div class="day-name">${d.day}${d.day===today?'<div class="hoy">HOY</div>':''}</div>
+      <div class="day-icon"><img src="https://openweathermap.org/img/wn/${d.icon}.png"></div>
+      <div class="day-temps">
+        <div class="temp-max">${d.max} ºC</div>
+        <div>${d.min} ºC</div>
+      </div>
+    `;
+    forecastStripEl.appendChild(div);
+  });
 
-        let locationInfo = null;
-        if (osmRes.ok) {
-          const osmData = await osmRes.json();
-          locationInfo = buildOsmLocation(osmData, currentData);
-        } else {
-          console.warn("OSM no respondió correctamente, usando nombre de OpenWeather.");
-        }
+  updatedAtEl.textContent = "Actualizado: " +
+    new Date().toLocaleTimeString("es-PE",{hour:"2-digit",minute:"2-digit"});
+}
 
-        if (!locationInfo) {
-          locationInfo = buildOsmLocation(null, currentData);
-        }
+initWeather();
+</script>
 
-        renderWeather(locationInfo, currentData, forecastData);
-      } catch (e) {
-        console.error(e);
-        showError("No se pudo cargar el clima. Verifica tu conexión o que la API key siga activa.");
-        badgeTextEl.textContent = "Error";
-      }
-    }
-
-    // Construye objeto con:
-    // fullLabel: "Departamento, Distrito"
-    // department: "Departamento"
-    // district: "Distrito"
-    function buildOsmLocation(osmData, currentData) {
-      if (!osmData || !osmData.address) {
-        const name = currentData?.name || "Tu ubicación";
-        return { fullLabel: name, department: name, district: "" };
-      }
-
-      const addr = osmData.address;
-
-      const department =
-        addr.state ||
-        addr.region ||
-        addr.state_district ||
-        addr.county ||
-        null;
-
-      const district =
-        addr.city_district ||
-        addr.suburb ||
-        addr.town ||
-        addr.city ||
-        addr.village ||
-        addr.municipality ||
-        null;
-
-      if (department && district) {
-        return {
-          fullLabel: `${department}, ${district}`,
-          department,
-          district
-        };
-      }
-
-      if (department) {
-        return {
-          fullLabel: department,
-          department,
-          district: ""
-        };
-      }
-
-      if (district) {
-        return {
-          fullLabel: district,
-          department: district,
-          district
-        };
-      }
-
-      const fallbackName = currentData?.name || "Tu ubicación";
-      return {
-        fullLabel: fallbackName,
-        department: fallbackName,
-        district: ""
-      };
-    }
-
-    // =============== RENDER ===============
-    function renderWeather(locationInfo, currentData, forecastData) {
-      const { fullLabel, department } = locationInfo;
-
-      cityNameEl.textContent = fullLabel;
-      departmentTextEl.textContent = department;
-      badgeTextEl.textContent = department;
-
-      // Actual
-      const temp = currentData.main.temp;
-      const desc = currentData.weather[0].description;
-      const iconCode = currentData.weather[0].icon;
-
-      currentTempEl.textContent = `${Math.round(temp)} ºC`;
-      currentDescEl.textContent = desc;
-      currentIconEl.innerHTML = `<img src="https://openweathermap.org/img/wn/${iconCode}@2x.png" alt="${desc}">`;
-
-      // Pronóstico diario (a partir de /forecast cada 3 horas)
-      const list = forecastData.list || [];
-      const daysMap = new Map();
-
-      list.forEach((item) => {
-        const d = new Date(item.dt * 1000);
-        const dateKey =
-          d.getFullYear() +
-          "-" +
-          String(d.getMonth() + 1).padStart(2, "0") +
-          "-" +
-          String(d.getDate()).padStart(2, "0");
-
-        const tempMin = item.main.temp_min;
-        const tempMax = item.main.temp_max;
-        const icon = item.weather[0].icon;
-
-        if (!daysMap.has(dateKey)) {
-          daysMap.set(dateKey, {
-            min: tempMin,
-            max: tempMax,
-            icon: icon,
-            dt: d
-          });
-        } else {
-          const dayData = daysMap.get(dateKey);
-          dayData.min = Math.min(dayData.min, tempMin);
-          dayData.max = Math.max(dayData.max, tempMax);
-        }
-      });
-
-      const daysArray = Array.from(daysMap.values()).sort((a, b) => a.dt - b.dt);
-      const daysLimited = daysArray.slice(0, 7);
-
-      const todayName = mapDayToSpanish(new Date().getDay());
-
-      const cards = daysLimited.map((dData) => {
-        const dayName = mapDayToSpanish(dData.dt.getDay());
-        return {
-          name: dayName,
-          min: Math.round(dData.min),
-          max: Math.round(dData.max),
-          icon: dData.icon,
-          dt: dData.dt,
-          isToday: dayName === todayName
-        };
-      });
-
-      cards.sort((a, b) => {
-        return DAYS_ORDERED.indexOf(a.name) - DAYS_ORDERED.indexOf(b.name);
-      });
-
-      forecastStripEl.innerHTML = "";
-      cards.forEach((c) => {
-        const card = document.createElement("div");
-        card.className = "day-card";
-        if (c.isToday) card.classList.add("today");
-        card.innerHTML = `
-          <div class="day-name">
-            ${c.name}
-            ${c.isToday ? '<span class="hoy">HOY</span>' : ""}
-          </div>
-          <div class="day-icon">
-            <img src="https://openweathermap.org/img/wn/${c.icon}.png" alt="">
-          </div>
-          <div class="day-temps">
-            <span class="temp-max">${c.max} ºC</span>
-            <span class="temp-min">${c.min} ºC</span>
-          </div>
-        `;
-        forecastStripEl.appendChild(card);
-      });
-
-      const now = new Date();
-      updatedAtEl.textContent = `Actualizado: ${now.toLocaleTimeString("es-PE", {
-        hour: "2-digit",
-        minute: "2-digit"
-      })}`;
-    }
-
-    function mapDayToSpanish(jsDay) {
-      const map = {
-        0: "Domingo",
-        1: "Lunes",
-        2: "Martes",
-        3: "Miércoles",
-        4: "Jueves",
-        5: "Viernes",
-        6: "Sábado"
-      };
-      return map[jsDay];
-    }
-
-    function showError(msg) {
-      errorTextEl.textContent = msg;
-    }
-
-    initWeather();
-  </script>
 </body>
 </html>
