@@ -7,8 +7,10 @@
 
   <style>
     :root {
-      --bg-main: #050816;
-      --bg-card: #0b1120;
+      /* Colores estilo widget Pomodoro */
+      ----bg-main: radial-gradient(circle at top, #1e40af 0%, #0f172a 45%, #0a0f1f 100%);
+
+      --bg-card: rgba(15, 23, 42, 0.96);
       --accent:  #2563eb;
       --text-main: #f9fafb;
       --text-secondary: #9ca3af;
@@ -24,19 +26,19 @@
     }
 
     body {
-      background: transparent;
+      background: #020617; /* mismo fondo general del Pomodoro */
     }
 
     .weather-widget {
       background: var(--bg-main);
       color: var(--text-main);
-      padding: 26px 24px 34px 24px;  /* un poco más alto abajo para que no se corte el borde azul */
+      padding: 31px 24px 39px 24px;  /* un poco más alto abajo para que no se corte el borde azul */
       border-radius: var(--radius-lg);
-      display: inline-flex;          /* importante: el contenedor se ajusta al contenido */
+      display: inline-flex;          /* el contenedor se ajusta al contenido */
       align-items: center;
       gap: 10px;
-      width: auto;                   /* ya no ocupa 100% */
-      max-width: none;               /* sin límite fijo de ancho */
+      width: auto;
+      max-width: none;
     }
 
     .location-block {
@@ -58,7 +60,7 @@
 
     /* Pastilla azul grande con texto blanco */
     .badge {
-      background: rgba(37, 99, 235, 0.35);
+      background: rgba(37, 99, 235, 0.8);
       color: #ffffff;
       border-radius: 999px;
       padding: 4px 18px;
@@ -84,6 +86,7 @@
       align-items: center;
       gap: 14px;
       min-width: 120px;
+      margin-left: -5px;   /* mueve el bloque de clima 5px hacia la izquierda */
     }
 
     .current-icon img {
@@ -107,7 +110,7 @@
       gap: 10px;
       justify-content: flex-end;
       flex-wrap: nowrap;    /* siempre en una sola línea */
-      flex: 0 0 auto;       /* no se estira más allá del contenido */
+      flex: 0 0 auto;
       overflow: visible;    /* para que el borde azul no se corte */
     }
 
@@ -117,7 +120,7 @@
       padding: 16px 12px 18px 12px;  /* más altura interna */
       min-width: 62px;
       max-width: 72px;
-      flex: 0 0 auto;                /* ancho fijo, no se estira */
+      flex: 0 0 auto;
       text-align: center;
       display: flex;
       flex-direction: column;
@@ -173,7 +176,7 @@
         <!-- Pastilla azul: departamento -->
         <span class="badge" id="badge-text">Departamento</span>
 
-        <!-- Actualizado dentro del cuadro negro -->
+        <!-- Actualizado dentro del cuadro -->
         <span class="status-text" id="updated-at">Actualizado: --</span>
 
         <span class="message" id="error-text"></span>
