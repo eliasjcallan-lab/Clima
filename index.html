@@ -30,13 +30,13 @@
     .weather-widget {
       background: var(--bg-main);
       color: var(--text-main);
-      padding: 26px 24px;
+      padding: 26px 24px 34px 24px;  /* un poco más alto abajo para que no se corte el borde azul */
       border-radius: var(--radius-lg);
-      display: flex;
+      display: inline-flex;          /* importante: el contenedor se ajusta al contenido */
       align-items: center;
-      gap: 6px;
-      width: 100%;
-      max-width: 900px;
+      gap: 10px;
+      width: auto;                   /* ya no ocupa 100% */
+      max-width: none;               /* sin límite fijo de ancho */
     }
 
     .location-block {
@@ -56,10 +56,10 @@
       text-transform: none;
     }
 
-    /* Pastilla azul más grande y protagonista */
+    /* Pastilla azul grande con texto blanco */
     .badge {
-      background: rgba(37, 99, 235, 0.2);
-      color: #ffffff;   /* ← TEXTO BLANCO */
+      background: rgba(37, 99, 235, 0.35);
+      color: #ffffff;
       border-radius: 999px;
       padding: 4px 18px;
       font-size: 13px;
@@ -105,20 +105,23 @@
     .forecast-strip {
       display: flex;
       gap: 10px;
-      flex: 1;
       justify-content: flex-end;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;    /* siempre en una sola línea */
+      flex: 0 0 auto;       /* no se estira más allá del contenido */
+      overflow: visible;    /* para que el borde azul no se corte */
     }
 
     .day-card {
       background: var(--bg-card);
       border-radius: var(--radius-lg);
-      padding: 12px;
-      min-width: 70px;
+      padding: 16px 12px 18px 12px;  /* más altura interna */
+      min-width: 62px;
+      max-width: 72px;
+      flex: 0 0 auto;                /* ancho fijo, no se estira */
       text-align: center;
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 6px;
     }
 
     .day-card.today {
@@ -149,8 +152,13 @@
     }
 
     .temp-max {
-      color: #ffffff;   /* ← TEXTO BLANCO */
+      color: #ffffff;
       font-weight: bold;
+    }
+
+    .temp-min {
+      color: #ffffff;
+      opacity: 0.85;
     }
   </style>
 </head>
@@ -240,7 +248,7 @@ async function fetchWeather(lat,lon){
   }
 }
 
-// Queremos: cityName = distrito, badge = departamento
+// Ciudad = distrito, pastilla = departamento
 function parseLocation(osm,weather){
   const a = osm.address || {};
 
@@ -263,38 +271,61 @@ function renderWeather(loc,w,f){
   currentDescEl.textContent = w.weather[0].description;
   currentIconEl.innerHTML = `<img src="https://openweathermap.org/img/wn/${w.weather[0].icon}@2x.png">`;
 
-  // Forecast agrupado por día
-  const days = {};
+  // === Pronóstico agrupado por día ===
+  const grouped = {};
   f.list.forEach(i=>{
-    const d=new Date(i.dt*1000);
-    const key=d.toDateString();
-    if(!days[key]){
-      days[key]={min:i.main.temp_min,max:i.main.temp_max,icon:i.weather[0].icon,day:DAYS[d.getDay()],date:d};
-    }else{
-      days[key].min=Math.min(days[key].min,i.main.temp_min);
-      days[key].max=Math.max(days[key].max,i.main.temp_max);
+    const d = new Date(i.dt*1000);
+    const key = d.toDateString();
+    if(!grouped[key]){
+      grouped[key] = {
+        min: i.main.temp_min,
+        max: i.main.temp_max,
+        icon: i.weather[0].icon,
+        day: DAYS[d.getDay()],
+        date: d
+      };
+    } else {
+      grouped[key].min = Math.min(grouped[key].min, i.main.temp_min);
+      grouped[key].max = Math.max(grouped[key].max, i.main.temp_max);
     }
   });
 
-  const list = Object.values(days).slice(0,7);
-  list.sort((a,b)=>ORDER.indexOf(a.day)-ORDER.indexOf(b.day));
+  // Convertimos en array ordenado por fecha
+  let list = Object.values(grouped).sort((a,b)=>a.date - b.date);
 
-  const today = DAYS[new Date().getDay()];
+  // Si hay menos de 7 días, rellenamos con copias del último día hacia adelante
+  while(list.length < 7 && list.length > 0){
+    const last = list[list.length - 1];
+    const nextDate = new Date(last.date.getTime());
+    nextDate.setDate(nextDate.getDate() + 1);
+    list.push({
+      min: last.min,
+      max: last.max,
+      icon: last.icon,
+      day: DAYS[nextDate.getDay()],
+      date: nextDate
+    });
+  }
+
+  // Orden visual lunes–domingo
+  list.sort((a,b)=>ORDER.indexOf(a.day) - ORDER.indexOf(b.day));
+
+  const todayName = DAYS[new Date().getDay()];
 
   forecastStripEl.innerHTML="";
-  list.forEach(d=>{
+  list.slice(0,7).forEach(d=>{
     const div=document.createElement("div");
     div.className="day-card";
-    if(d.day===today) div.classList.add("today");
+    if(d.day===todayName) div.classList.add("today");
 
     div.innerHTML=`
       <div class="day-name">
-        ${d.day}${d.day===today?'<div class="hoy">HOY</div>':''}
+        ${d.day}${d.day===todayName?'<div class="hoy">HOY</div>':''}
       </div>
       <div class="day-icon"><img src="https://openweathermap.org/img/wn/${d.icon}.png"></div>
       <div class="day-temps">
         <div class="temp-max">${Math.round(d.max)} ºC</div>
-        <div>${Math.round(d.min)} ºC</div>
+        <div class="temp-min">${Math.round(d.min)} ºC</div>
       </div>
     `;
     forecastStripEl.appendChild(div);
@@ -309,4 +340,3 @@ initWeather();
 
 </body>
 </html>
-
