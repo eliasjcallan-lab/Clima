@@ -25,19 +25,19 @@
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
 
-    body {
-      background: #020617; /* mismo fondo general del Pomodoro */
-    }
+body {
+  background: transparent;
+}
 
 .weather-widget {
   background: radial-gradient(
       circle at 50% 40%,
-      rgba(37, 99, 235, 0.45) 0%,
-      rgba(15, 23, 42, 0.9) 55%,
-      rgba(2, 6, 23, 1) 100%
+      #2563eb 0%,        /* azul principal */
+      #1e3a8a 45%,       /* azul profundo */
+      #0a0f1f 100%       /* borde casi negro */
     );
   background-repeat: no-repeat;
-  background-size: 140% 140%;  /* El gradiente se concentra dentro del cuadro */
+  background-size: 140% 140%;
   color: var(--text-main);
   padding: 31px 24px 39px 24px;
   border-radius: var(--radius-lg);
