@@ -7,15 +7,11 @@
 
   <style>
     :root {
-      /* Colores estilo widget Pomodoro */
-      ----bg-main: radial-gradient(circle at top, #1e40af 0%, #0f172a 45%, #0a0f1f 100%);
-
-      --bg-card: rgba(15, 23, 42, 0.96);
-      --accent:  #2563eb;
       --text-main: #f9fafb;
       --text-secondary: #9ca3af;
       --danger: #f97316;
       --radius-lg: 18px;
+      --accent: #2563eb;
     }
 
     * {
@@ -25,28 +21,28 @@
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
 
-body {
-  background: transparent;
-}
+    html, body {
+      background: transparent; /* importantísimo para Notion */
+    }
 
-.weather-widget {
-  background: radial-gradient(
-      circle at 50% 40%,
-      #2563eb 0%,        /* azul principal */
-      #1e3a8a 45%,       /* azul profundo */
-      #0a0f1f 100%       /* borde casi negro */
-    );
-  background-repeat: no-repeat;
-  background-size: 140% 140%;
-  color: var(--text-main);
-  padding: 31px 24px 39px 24px;
-  border-radius: var(--radius-lg);
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  width: auto;
-  max-width: none;
-}
+    .weather-widget {
+      background: radial-gradient(
+        circle at 50% 40%,
+        #2563eb 0%,
+        #1e3a8a 45%,
+        #0a0f1f 100%
+      );
+      background-repeat: no-repeat;
+      background-size: 140% 140%;
+      color: var(--text-main);
+      padding: 31px 24px 39px 24px;
+      border-radius: var(--radius-lg);
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      width: auto;
+      max-width: none;
+    }
 
     .location-block {
       display: flex;
@@ -65,7 +61,6 @@ body {
       text-transform: none;
     }
 
-    /* Pastilla azul grande con texto blanco */
     .badge {
       background: rgba(37, 99, 235, 0.8);
       color: #ffffff;
@@ -93,7 +88,7 @@ body {
       align-items: center;
       gap: 14px;
       min-width: 120px;
-      margin-left: -5px;   /* mueve el bloque de clima 5px hacia la izquierda */
+      margin-left: -5px; /* lo desplazamos un poco a la izquierda */
     }
 
     .current-icon img {
@@ -116,15 +111,15 @@ body {
       display: flex;
       gap: 10px;
       justify-content: flex-end;
-      flex-wrap: nowrap;    /* siempre en una sola línea */
+      flex-wrap: nowrap;
       flex: 0 0 auto;
-      overflow: visible;    /* para que el borde azul no se corte */
+      overflow: visible;
     }
 
     .day-card {
-      background: var(--bg-card);
+      background: rgba(15, 23, 42, 0.96);
       border-radius: var(--radius-lg);
-      padding: 16px 12px 18px 12px;  /* más altura interna */
+      padding: 16px 12px 18px 12px;
       min-width: 62px;
       max-width: 72px;
       flex: 0 0 auto;
@@ -220,15 +215,36 @@ const updatedAtEl = document.getElementById("updated-at");
 
 function initWeather(){
   if(!navigator.geolocation){
-    loadFallback();
+    // Si el navegador no soporta GPS, intentamos por IP
+    fetchLocationByIP();
     return;
   }
 
   navigator.geolocation.getCurrentPosition(
     (pos)=>fetchWeather(pos.coords.latitude,pos.coords.longitude),
-    ()=>loadFallback(),
-    {enableHighAccuracy:true,timeout:10000}
+    (err)=>{
+      console.warn("Error geolocalización, uso IP:", err);
+      // Si falla GPS (caso típico en Notion), usamos IP
+      fetchLocationByIP();
+    },
+    {enableHighAccuracy:true,timeout:8000}
   );
+}
+
+async function fetchLocationByIP(){
+  try{
+    const resp = await fetch("https://ipapi.co/json/");
+    const data = await resp.json();
+    if(data && data.latitude && data.longitude){
+      fetchWeather(data.latitude, data.longitude);
+    } else {
+      // Fallback duro si IP falla
+      fetchWeather(-12.0464,-77.0428);
+    }
+  } catch(e){
+    console.error("Error geoloc por IP:", e);
+    fetchWeather(-12.0464,-77.0428);
+  }
 }
 
 function loadFallback(){
@@ -272,10 +288,8 @@ function parseLocation(osm,weather){
 }
 
 function renderWeather(loc,w,f){
-  // Texto principal: solo distrito
-  cityNameEl.textContent = loc.dist;
-  // Pastilla azul: departamento
-  badgeTextEl.textContent = loc.dep;
+  cityNameEl.textContent = loc.dist;  // distrito
+  badgeTextEl.textContent = loc.dep;  // departamento
 
   currentTempEl.textContent = `${Math.round(w.main.temp)} ºC`;
   currentDescEl.textContent = w.weather[0].description;
@@ -300,10 +314,8 @@ function renderWeather(loc,w,f){
     }
   });
 
-  // Convertimos en array ordenado por fecha
   let list = Object.values(grouped).sort((a,b)=>a.date - b.date);
 
-  // Si hay menos de 7 días, rellenamos con copias del último día hacia adelante
   while(list.length < 7 && list.length > 0){
     const last = list[list.length - 1];
     const nextDate = new Date(last.date.getTime());
@@ -317,7 +329,6 @@ function renderWeather(loc,w,f){
     });
   }
 
-  // Orden visual lunes–domingo
   list.sort((a,b)=>ORDER.indexOf(a.day) - ORDER.indexOf(b.day));
 
   const todayName = DAYS[new Date().getDay()];
