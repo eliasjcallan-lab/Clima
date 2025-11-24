@@ -22,7 +22,7 @@
     }
 
     html, body {
-      background: transparent; /* importantísimo para Notion */
+      background: transparent; /* importante para Notion */
     }
 
     .weather-widget {
@@ -88,7 +88,7 @@
       align-items: center;
       gap: 14px;
       min-width: 120px;
-      margin-left: -5px; /* lo desplazamos un poco a la izquierda */
+      margin-left: -5px; /* desplaza el bloque de clima un poco a la izquierda */
     }
 
     .current-icon img {
@@ -213,9 +213,10 @@ const currentDescEl = document.getElementById("current-desc");
 const forecastStripEl = document.getElementById("forecast-strip");
 const updatedAtEl = document.getElementById("updated-at");
 
+// === INICIO: LÓGICA DE INICIALIZACIÓN ===
 function initWeather(){
   if(!navigator.geolocation){
-    // Sin GPS → fallback Lima
+    // Sin soporte de geolocalización → fallback a Lima
     loadFallback();
     return;
   }
@@ -223,31 +224,18 @@ function initWeather(){
   navigator.geolocation.getCurrentPosition(
     (pos)=>fetchWeather(pos.coords.latitude,pos.coords.longitude),
     (err)=>{
-      console.warn("GPS bloqueado, usando fallback:", err);
-      loadFallback();   // ← antes usabas esto, lo dejamos igual
+      console.warn("Geolocalización bloqueada o fallida, usando Lima por defecto:", err);
+      loadFallback();
     },
     {enableHighAccuracy:true,timeout:8000}
   );
 }
 
-  try{
-    const resp = await fetch("https://ipapi.co/json/");
-    const data = await resp.json();
-    if(data && data.latitude && data.longitude){
-      fetchWeather(data.latitude, data.longitude);
-    } else {
-      // Fallback duro si IP falla
-      fetchWeather(-12.0464,-77.0428);
-    }
-  } catch(e){
-    console.error("Error geoloc por IP:", e);
-    fetchWeather(-12.0464,-77.0428);
-  }
-}
-
 function loadFallback(){
+  // Lima centro
   fetchWeather(-12.0464,-77.0428);
 }
+// === FIN: LÓGICA DE INICIALIZACIÓN ===
 
 async function fetchWeather(lat,lon){
   try{
@@ -272,7 +260,7 @@ async function fetchWeather(lat,lon){
   }
 }
 
-// Ciudad = distrito, pastilla = departamento
+// Ciudad = distrito, pastilla = departamento (OSM)
 function parseLocation(osm,weather){
   const a = osm.address || {};
 
@@ -314,6 +302,7 @@ function renderWeather(loc,w,f){
 
   let list = Object.values(grouped).sort((a,b)=>a.date - b.date);
 
+  // Si hay menos de 7 días, rellenamos
   while(list.length < 7 && list.length > 0){
     const last = list[list.length - 1];
     const nextDate = new Date(last.date.getTime());
@@ -327,6 +316,7 @@ function renderWeather(loc,w,f){
     });
   }
 
+  // Orden visual lunes–domingo
   list.sort((a,b)=>ORDER.indexOf(a.day) - ORDER.indexOf(b.day));
 
   const todayName = DAYS[new Date().getDay()];
@@ -359,4 +349,3 @@ initWeather();
 
 </body>
 </html>
-
