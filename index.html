@@ -57,8 +57,14 @@
       font-size: 13px;
       color: var(--text-main);
       font-weight: 600;
-      text-transform: none; /* para respetar mayúsculas/minúsculas de OSM */
+      text-transform: none;       /* Mantener mayúsculas/minúsculas reales */
       letter-spacing: 0.03em;
+    }
+
+    #department-text {
+      text-transform: none;       /* También en formato normal */
+      letter-spacing: 0.06em;
+      font-weight: 500;
     }
 
     .current-weather {
@@ -112,7 +118,6 @@
       position: relative;
     }
 
-    /* Día actual resaltado */
     .day-card.today {
       outline: 2px solid var(--accent);
       box-shadow: 0 0 14px rgba(37, 99, 235, 0.7);
@@ -159,14 +164,10 @@
       position: absolute;
       inset: auto 20px 10px 20px;
       display: flex;
-      justify-content: space-between;
+      justify-content: flex-start;
       font-size: 10px;
       color: var(--text-secondary);
       pointer-events: none;
-    }
-
-    .status-bar span {
-      pointer-events: auto;
     }
 
     .weather-wrapper {
@@ -180,8 +181,8 @@
       border-radius: 999px;
       padding: 2px 10px;
       font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
+      text-transform: none;
+      letter-spacing: 0.06em;
       font-weight: 600;
     }
 
@@ -196,9 +197,12 @@
   <div class="weather-wrapper">
     <div class="weather-widget" id="weather-widget">
       <div class="location-block">
+        <!-- Departamento, Distrito -->
         <span class="city" id="city-name">Detectando ubicación…</span>
-        <span>CLIMA</span>
-        <span class="badge" id="badge-text">Cargando datos</span>
+        <!-- Departamento solo (reemplaza a CLIMA) -->
+        <span id="department-text">Departamento</span>
+        <!-- Pastilla azul con Departamento -->
+        <span class="badge" id="badge-text">Departamento</span>
         <span class="message" id="error-text"></span>
       </div>
 
@@ -217,7 +221,7 @@
 
     <div class="status-bar">
       <span id="updated-at">Actualizado: --</span>
-      <span>Fuente: OpenWeather • Ubicación por GPS + OpenStreetMap</span>
+      <!-- Quitado texto de fuente -->
     </div>
   </div>
 
@@ -227,10 +231,10 @@
     const UNITS = "metric";
     const LANG = "es";
 
-    // Orden visual de días
     const DAYS_ORDERED = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 
     const cityNameEl = document.getElementById("city-name");
+    const departmentTextEl = document.getElementById("department-text");
     const badgeTextEl = document.getElementById("badge-text");
     const errorTextEl = document.getElementById("error-text");
     const currentIconEl = document.getElementById("current-icon");
@@ -243,12 +247,13 @@
     function initWeather() {
       if (!navigator.geolocation) {
         showError("Tu navegador no permite obtener la ubicación. Usando Lima por defecto.");
-        badgeTextEl.textContent = "Sin GPS";
+        badgeTextEl.textContent = "Lima";
+        departmentTextEl.textContent = "Lima";
         fetchWeather(-12.0464, -77.0428);
         return;
       }
 
-      badgeTextEl.textContent = "Solicitando GPS…";
+      badgeTextEl.textContent = "Cargando…";
 
       navigator.geolocation.getCurrentPosition(
         (pos) => {
@@ -258,7 +263,8 @@
         (err) => {
           console.error("Error geolocalización:", err);
           showError("No se pudo obtener la ubicación. Usando Lima por defecto. Revisa los permisos de GPS.");
-          badgeTextEl.textContent = "Sin GPS";
+          badgeTextEl.textContent = "Lima";
+          departmentTextEl.textContent = "Lima";
           fetchWeather(-12.0464, -77.0428);
         },
         {
@@ -272,7 +278,6 @@
     // =============== PETICIONES: OpenWeather + OpenStreetMap ===============
     async function fetchWeather(lat, lon) {
       try {
-        badgeTextEl.textContent = "Cargando datos…";
         errorTextEl.textContent = "";
 
         const urlCurrent = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=${UNITS}&lang=${LANG}&appid=${API_KEY}`;
@@ -299,21 +304,19 @@
         const currentData = await currentRes.json();
         const forecastData = await forecastRes.json();
 
-        let cityLabel = null;
+        let locationInfo = null;
         if (osmRes.ok) {
           const osmData = await osmRes.json();
-          cityLabel = buildOsmLabel(osmData, currentData);
+          locationInfo = buildOsmLocation(osmData, currentData);
         } else {
           console.warn("OSM no respondió correctamente, usando nombre de OpenWeather.");
         }
 
-        // Fallback a nombre de OpenWeather si OSM no devuelve algo útil
-        if (!cityLabel || cityLabel.trim() === ",") {
-          cityLabel = currentData.name || "Tu ubicación";
+        if (!locationInfo) {
+          locationInfo = buildOsmLocation(null, currentData);
         }
 
-        renderWeather(cityLabel, currentData, forecastData);
-        badgeTextEl.textContent = "Ubicación activada";
+        renderWeather(locationInfo, currentData, forecastData);
       } catch (e) {
         console.error(e);
         showError("No se pudo cargar el clima. Verifica tu conexión o que la API key siga activa.");
@@ -321,22 +324,26 @@
       }
     }
 
-    // Construye "Departamento, Distrito" desde la respuesta de OSM
-    function buildOsmLabel(osmData, currentData) {
-      if (!osmData || !osmData.address) return null;
+    // Construye objeto con:
+    // fullLabel: "Departamento, Distrito"
+    // department: "Departamento"
+    // district: "Distrito"
+    function buildOsmLocation(osmData, currentData) {
+      if (!osmData || !osmData.address) {
+        const name = currentData?.name || "Tu ubicación";
+        return { fullLabel: name, department: name, district: "" };
+      }
+
       const addr = osmData.address;
 
-      // En Perú normalmente:
-      // state = "Lima"
-      // city_district / suburb / town / city = "San Juan de Lurigancho", "Miraflores", etc.
-      const departamento =
+      const department =
         addr.state ||
         addr.region ||
         addr.state_district ||
         addr.county ||
         null;
 
-      const distrito =
+      const district =
         addr.city_district ||
         addr.suburb ||
         addr.town ||
@@ -345,21 +352,45 @@
         addr.municipality ||
         null;
 
-      if (departamento && distrito) {
-        return `${departamento}, ${distrito}`;
+      if (department && district) {
+        return {
+          fullLabel: `${department}, ${district}`,
+          department,
+          district
+        };
       }
 
-      // Si solo tenemos uno de los dos, devolvemos lo que haya
-      if (departamento) return departamento;
-      if (distrito) return distrito;
+      if (department) {
+        return {
+          fullLabel: department,
+          department,
+          district: ""
+        };
+      }
 
-      // Si nada, usamos el nombre de OpenWeather
-      return currentData?.name || null;
+      if (district) {
+        return {
+          fullLabel: district,
+          department: district,
+          district
+        };
+      }
+
+      const fallbackName = currentData?.name || "Tu ubicación";
+      return {
+        fullLabel: fallbackName,
+        department: fallbackName,
+        district: ""
+      };
     }
 
     // =============== RENDER ===============
-    function renderWeather(city, currentData, forecastData) {
-      cityNameEl.textContent = city;
+    function renderWeather(locationInfo, currentData, forecastData) {
+      const { fullLabel, department } = locationInfo;
+
+      cityNameEl.textContent = fullLabel;
+      departmentTextEl.textContent = department;
+      badgeTextEl.textContent = department;
 
       // Actual
       const temp = currentData.main.temp;
@@ -418,7 +449,6 @@
         };
       });
 
-      // Orden visual lunes–domingo
       cards.sort((a, b) => {
         return DAYS_ORDERED.indexOf(a.name) - DAYS_ORDERED.indexOf(b.name);
       });
